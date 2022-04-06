@@ -209,7 +209,8 @@ class VoiceVox(VoiceAi):
     ## speaker:2 四国めたん(ノーマル)
     def _generate_wav(self, text, speaker=2):
         host = 'kuwanolabserver.iis.u-tokyo.ac.jp'
-        port = 50021
+        #port = 50021 ##CPU
+        port = 50022 ## GPU
         params = (('text', text),('speaker', speaker),)
         response1 = requests.post(f'http://{host}:{port}/audio_query', params=params )
         headers = {'Content-Type': 'application/json',}
@@ -310,13 +311,6 @@ def Talk_Sentence(sentense, mode = None):
 class klab:
     # 今日のログイン者の情報を取得します
     def _get_json(self):
-        ## 内部参照用URL
-        #url = "http://kuwanolabserver.iis.u-tokyo.ac.jp:28080/api/today_list"
-        # 外部参照用URL
-        #url = "https://kuwano:Mountaineering1114@www.geo.mydns.jp/record/api/today_list"
-        #headers = {"content-type": "application/json"}
-        #r = requests.get(url, headers=headers)
-        #data = r.json()
         return Database().get_today_list()
 
     # ログインの最初と最後を判別します
@@ -432,6 +426,8 @@ def convert_eng2jpn_name(eng):
         return 'ヨシモトさん'
     if 'Itsuki' in eng:
         return 'イツキくん'
+    if 'Akira' in eng:
+        return 'アキラくん'
     if 'Sanjei' in eng:
         return 'サンジェイさん'
     if 'Yang' in eng:
@@ -456,21 +452,12 @@ def convert_eng2jpn_name(eng):
         return 'ハシモトくん'
     if 'Hirano' in eng:
         return 'ヒラノくん'
+    if 'Futakuchi' in eng:
+        return 'フタクチさん'
+
     return ''
 
-def PrepareEssential():
-    name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto', 'Reiji Hirano']
-    for name in name_list:
-        jpn_name = convert_eng2jpn_name(name)
-        Prepare(jpn_name)
-    word_list = ['お疲れ様でした', 'おはようございます', 'こんにちは', 'こんばんは']
-    for word in word_list:
-        Prepare(word)
-
 def TimeSignal():
-    #Talk_Sentence(['時報モードをオンにします'])
-    #Talk_Sentence(['これはテスト音声です'])
-
     while True:
         now = datetime.datetime.now()
         if now.weekday() < 5:
@@ -519,5 +506,5 @@ def Mainloop():
             time.sleep(1)
 
 if __name__ == '__main__':
-    PrepareEssential()
     Mainloop()
+    #Talk_Sentence(['これはテスト音声です'])
