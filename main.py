@@ -208,15 +208,20 @@ class VoiceAi():
          raise NotImplementedError()
 
 class VoiceVox(VoiceAi):
+    _speaker_id = 2
+
+    def set_speaker(self, id):
+        self._speaker_id = id
+
     def _ai_name(self):
-        return 'VoiceVox'
+        return 'VoiceVox_Speaker_%03d' % self._speaker_id
 
     ## speaker:2 四国めたん(ノーマル)
-    def _generate_wav(self, text, speaker=2):
+    def _generate_wav(self, text):
         host = 'kuwanolabserver.iis.u-tokyo.ac.jp'
         port = 50021 ##CPU
         #port = 50022 ## GPU
-        params = (('text', text),('speaker', speaker),)
+        params = (('text', text),('speaker', self._speaker_id),)
         response1 = requests.post(f'http://{host}:{port}/audio_query', params=params )
         headers = {'Content-Type': 'application/json',}
         response2 = requests.post(
@@ -231,13 +236,18 @@ class VoiceVox(VoiceAi):
         return (wav, fs)
 
 class AkaneChan(VoiceAi):
+    _speaker_id = 522
+
+    def set_speaker(self, id):
+        self._speaker_id = id
+
     def _ai_name(self):
-        return 'AkaneChan'
+        return 'AkaneChan_%03d' % self._speaker_id
 
     def _get_data_url(self, text) -> str:
         data = {}
         data["api-version"] = "v5"
-        data["speaker_id"] = "552"
+        data["speaker_id"] = str(self._speaker_id)
         data["text"] = text
         data["ext"] = "wav"
         data["volume"] = "1.0"
@@ -395,7 +405,7 @@ class klab:
         prob = 0.97
         enter_name_list = []
         exit_name_list = []
-        name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto']
+        name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto', 'Reiji Hirano', 'Natsuho Futakuchi', 'Akira Sato']
         for name in name_list:
             if prob < random.random():
                 enter_name_list.append(name)
@@ -511,7 +521,7 @@ def Mainloop():
             time.sleep(1)
 
 def PrepareEssential():
-    name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto', 'Reiji Hirano']
+    name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto', 'Reiji Hirano', 'Natsuho Futakuchi', 'Akira Sato']
     for name in name_list:
         jpn_name = convert_eng2jpn_name(name)
         Prepare(jpn_name)
