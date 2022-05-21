@@ -1,30 +1,28 @@
 import os
 import io
-import gc
 import json
 import time
 import wave
 import numpy
 import shutil
-import typing
-import mariadb
 import hashlib
 import datetime
-import resource
 import requests
-import jpholiday
 import sounddevice
+import mysql.connector
+import mysql.connector.pooling
 from dateutil.relativedelta import relativedelta
 
-class Database():
-    DB_HOST = "127.0.0.1"
-    DB_NAME = "felica_db"
-    DB_USER = "bw304"
-    DB_PASS = "UpomPmBu"
-    DB_PORT = 3306
+DB_HOST = "kuwanolabserver.iis.u-tokyo.ac.jp"
+DB_NAME = "felica_db"
+DB_USER = "bw304"
+DB_PASS = "UpomPmBu"
+DB_PORT = 3306
+pool = mysql.connector.pooling.MySQLConnectionPool(user=DB_USER, password=DB_PASS, database=DB_NAME, host=DB_HOST, port=DB_PORT, pool_size=16)
 
+class Database():
     def _get_mariadb_con(self):
-        return mariadb.connect(user=self.DB_USER, password=self.DB_PASS, database=self.DB_NAME, host=self.DB_HOST, port=self.DB_PORT)
+        return pool.get_connection()
 
     def get_datetime_list(self, name, ymd_from, ymd_to):
         ret = {}
@@ -61,45 +59,52 @@ class Database():
 
     def get_name_list(self):
         con = self._get_mariadb_con()
-        cursor = con.cursor()
-        query = "SELECT name FROM idm_name WHERE enable = 1 ORDER BY priority;"
-        cursor.execute(query)
-        ret = []
-        for item in cursor.fetchall():
-            name = item[0]
-            if name not in ret:
-                ret.append(name)
-
-        cursor.close()
-        del cursor
-        con.close()
-        del con
+        cursor = None
+        try:
+            cursor = con.cursor()
+            query = "SELECT name FROM idm_name WHERE enable = 1 ORDER BY priority;"
+            cursor.execute(query)
+            ret = []
+            for item in cursor.fetchall():
+                name = item[0]
+                if name not in ret:
+                    ret.append(name)
+        finally:
+            if cursor:
+                cursor.close()
+                del cursor
+            con.close()
+            del con
 
         return ret
 
     def get_john_doe_list(self):
         con = self._get_mariadb_con()
-        cursor = con.cursor()
-        query  = "SELECT idm_datetime.*,idm_name.name "
-        query += "FROM idm_datetime LEFT JOIN idm_name ON (idm_datetime.idm = idm_name.idm) "
-        query += "WHERE idm_name.name is NULL "
-        query += "ORDER BY idm_datetime.`datetime` DESC LIMIT 10;"
-        cursor.execute(query)
-        ret = {}
-        list = []
-        for item in cursor.fetchall():
-            idm = item[0]
-            datetime = item[1]
-            if idm not in list:
-                list.append(idm)
-                ret[idm] = str(datetime)
+        cursor = None
+        try:
+            cursor = con.cursor()
+            query  = "SELECT idm_datetime.*,idm_name.name "
+            query += "FROM idm_datetime LEFT JOIN idm_name ON (idm_datetime.idm = idm_name.idm) "
+            query += "WHERE idm_name.name is NULL "
+            query += "ORDER BY idm_datetime.`datetime` DESC LIMIT 10;"
+            cursor.execute(query)
+            ret = {}
+            list = []
+            for item in cursor.fetchall():
+                idm = item[0]
+                datetime = item[1]
+                if idm not in list:
+                    list.append(idm)
+                    ret[idm] = str(datetime)
 
-        cursor.close()
-        del cursor
-        con.close()
-        del con
+        finally:
+            if cursor:
+                cursor.close()
+                del cursor
+            con.close()
+            del con
 
-        return ret;
+        return ret
 
     def get_today_list(self):
         ret = {}
@@ -114,10 +119,10 @@ class Database():
             for dt in dict["datetime"]:
                 list.append(dt.strftime('%Y-%m-%d %H:%M:%S'))
             ret[dict["name"]]  = list
-        return ret;
+        return ret
 
     def find_enter_exit_time(self, day, list):
-        enter = exit = None;
+        enter = exit = None
         # 最初と最後のタッチを判別する
         for item in list:
             if self._is_same_day(item, day):
@@ -133,12 +138,12 @@ class Database():
             diff_min = (exit - enter).total_seconds() / 60
             if diff_min < 5:
                 exit = None
-        return (enter, exit);
+        return (enter, exit)
 
     def _is_same_day(self, day_a, day_b):
         ret = False
         if day_a.year == day_b.year and day_a.month == day_b.month and day_a.day == day_b.day:
-            ret = True;
+            ret = True
         return ret
 
 class VoiceAi():
@@ -209,8 +214,8 @@ class VoiceVox(VoiceAi):
     ## speaker:2 四国めたん(ノーマル)
     def _generate_wav(self, text, speaker=2):
         host = 'kuwanolabserver.iis.u-tokyo.ac.jp'
-        #port = 50021 ##CPU
-        port = 50022 ## GPU
+        port = 50021 ##CPU
+        #port = 50022 ## GPU
         params = (('text', text),('speaker', speaker),)
         response1 = requests.post(f'http://{host}:{port}/audio_query', params=params )
         headers = {'Content-Type': 'application/json',}
@@ -480,8 +485,8 @@ def Mainloop():
         exit = []
         try:
             (enter, exit) = k.check()
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
         num_event = len(enter) + len(exit)
         if num_event < 1:
@@ -505,6 +510,16 @@ def Mainloop():
             Talk_Sentence([jpn_name, message], mode)
             time.sleep(1)
 
+def PrepareEssential():
+    name_list = ['Reiko Kuwano', 'Masahide Otsubo', 'Makoto Kuno', 'Satoko Kichibayashi', 'Eiko Yoshimoto', 'Itsuki Sato', 'Chitravel Sanjei', 'Li Yang', 'Liu Junming', 'Naqi Ali', 'Daichi Yokoyama', 'Yohei Karasaki', 'Chhoeur Pryalen', 'Yutaro Hara', 'Koki Horinouchi', 'Horoyuki Hashimoto', 'Reiji Hirano']
+    for name in name_list:
+        jpn_name = convert_eng2jpn_name(name)
+        Prepare(jpn_name)
+    word_list = ['お疲れ様でした', 'おはようございます', 'こんにちは', 'こんばんは']
+    for word in word_list:
+        Prepare(word)
+
 if __name__ == '__main__':
+    PrepareEssential()
     Mainloop()
-    #Talk_Sentence(['これはテスト音声です'])
+    #Talk_Sentence(['これは新規のテスト音声です'])
