@@ -208,6 +208,7 @@ class VoiceAi():
          raise NotImplementedError()
 
 class VoiceVox(VoiceAi):
+    ## speaker:2 四国めたん(ノーマル)
     _speaker_id = 2
 
     def set_speaker(self, id):
@@ -216,7 +217,6 @@ class VoiceVox(VoiceAi):
     def _ai_name(self):
         return 'VoiceVox_Speaker_%03d' % self._speaker_id
 
-    ## speaker:2 四国めたん(ノーマル)
     def _generate_wav(self, text):
         host = 'kuwanolabserver.iis.u-tokyo.ac.jp'
         port = 50021 ##CPU
@@ -232,7 +232,8 @@ class VoiceVox(VoiceAi):
         )
 
         fs = 24000
-        wav = numpy.frombuffer(response2.content, numpy.int16)
+        # 先頭がおかしい時がある事への対策
+        wav = numpy.frombuffer(response2.content, numpy.int16)[32:-1]
         return (wav, fs)
 
 class AkaneChan(VoiceAi):
@@ -433,6 +434,8 @@ def convert_eng2jpn_name(eng):
         return 'クワノ先生'
     if 'Otsubo' in eng:
         return 'オオツボ先生'
+    if 'Takeshi Sato' in eng:
+        return 'サトウさん'
     if 'Kuno' in eng:
         return 'クノさん'
     if 'Kichibayashi' in eng:
@@ -530,6 +533,6 @@ def PrepareEssential():
         Prepare(word)
 
 if __name__ == '__main__':
+    Talk_Sentence(['ボイスAIを起動します。'])
     PrepareEssential()
     Mainloop()
-    #Talk_Sentence(['これは新規のテスト音声です'])
